@@ -1,0 +1,73 @@
+service: serverless-snipetts-postgresql
+
+provider:
+  name: aws
+
+custom:
+  vpc: ${cf:serverless-snipetts-vpc-${opt:stage}.vpc}
+  subnetPrivateA: ${cf:serverless-snipetts-vpc-${opt:stage}.subnetPrivateA}
+  subnetPrivateB: ${cf:serverless-snipetts-vpc-${opt:stage}.subnetPrivateB}
+  username: postgres
+  password: password
+
+resources:
+  Resources:
+    securityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: RDS Security Group
+        GroupName: ${self:service}-${opt:stage}
+        VpcId: ${self:custom.vpc}
+    dbSubnetGroup:
+      Type: AWS::RDS::DBSubnetGroup
+      Properties:
+        DBSubnetGroupDescription: RDS Subnet Group
+        DBSubnetGroupName: ${self:service}-${opt:stage}
+        SubnetIds:
+          - ${self:custom.subnetPrivateA}
+          - ${self:custom.subnetPrivateB}
+    rds:
+      Type: AWS::RDS::DBInstance
+      Properties:
+        AllocatedStorage: 20
+        AllowMajorVersionUpgrade: true
+        AutoMinorVersionUpgrade: true
+        BackupRetentionPeriod: 1
+        # CharacterSetName: UTF8
+        DBInstanceClass: db.t2.micro
+        DBSubnetGroupName: !Ref dbSubnetGroup
+        DeleteAutomatedBackups: false
+        DeletionProtection: false
+        EnableCloudwatchLogsExports:
+          - postgresql
+          - upgrade
+        EnableIAMDatabaseAuthentication: false
+        EnablePerformanceInsights: false
+        Engine: postgres
+        EngineVersion: 12.5
+        MasterUsername: ${self:custom.username}
+        MasterUserPassword: ${self:custom.password}
+        # MaxAllocatedStorage: Integer
+        MonitoringInterval: 0
+        # MonitoringRoleArn: String
+        MultiAZ: true
+        Port: 5432
+        PubliclyAccessible: false
+        # SourceDBInstanceIdentifier: String
+        SourceRegion:
+          !Ref AWS::Region
+        StorageEncrypted: false
+        StorageType: standard
+        VPCSecurityGroups:
+          - !Ref securityGroup
+  Outputs:
+    rdsAddress:
+      Value:
+        Fn::GetAtt:
+          - rds
+          - Endpoint.Address
+    rdsPort:
+      Value:
+        Fn::GetAtt:
+          - rds
+          - Endpoint.Port
