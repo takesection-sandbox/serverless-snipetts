@@ -18,6 +18,17 @@ resources:
         GroupDescription: RDS Security Group
         GroupName: ${self:service}-${opt:stage}
         VpcId: ${self:custom.vpc}
+    securityGroupIngress:
+      Type: AWS::EC2::SecurityGroupIngress
+      Properties:
+        FromPort: 5432
+        GroupId: !Ref securityGroup
+        IpProtocol: tcp
+        SourceSecurityGroupId:
+          Fn::GetAtt:
+            - securityGroup
+            - GroupId
+        ToPort: 5432
     dbSubnetGroup:
       Type: AWS::RDS::DBSubnetGroup
       Properties:
